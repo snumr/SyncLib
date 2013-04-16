@@ -7,8 +7,6 @@
 
 package org.mumidol.sync;
 
-import com.sun.javaws.CacheUpdateHelper;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
