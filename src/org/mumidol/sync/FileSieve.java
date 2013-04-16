@@ -21,10 +21,19 @@ import java.util.Map;
 class FileSieve {
     private FileMatcher matcher;
 
+    /**
+     * Creates file sieve that will use provided <code>FileMatcher</code> to sift files.
+     * @param matcher to be used to accept files.
+     */
     public FileSieve(FileMatcher matcher) {
         this.matcher = matcher;
     }
 
+    /**
+     * Sifts <code>MetaFile</code> tree.
+     * @param file to be sifted
+     * @return sifted tree.
+     */
     public MetaFile sift(MetaFile file) {
         return new SieveMetaFile(file);
     }
@@ -62,7 +71,7 @@ class FileSieve {
         public Map<String, ? extends MetaFile> getFiles() {
             if (files == null) {
                 if (original.getFiles() != null) {
-                    files = new HashMap<String, SieveMetaFile>();
+                    files = new HashMap<>();
                     for (MetaFile f : original.getFiles().values()) {
                         if (matcher.accept(f)) {
                             files.put(f.getName(), new SieveMetaFile(this, f));

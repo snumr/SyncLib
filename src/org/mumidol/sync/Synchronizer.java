@@ -7,6 +7,7 @@
 
 package org.mumidol.sync;
 
+import java.text.CollationElementIterator;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -16,6 +17,8 @@ import java.util.Set;
  * @author Alexander Alexeev
  */
 public class Synchronizer {
+    private Synchronizer() {
+    }
 
     /**
      * Synchronizes two {@link MetaFile}. If <code>matcher</code> is not <code>null</code>
@@ -35,18 +38,23 @@ public class Synchronizer {
         if ((first == null) && (second == null)) {
             throw new NullPointerException();
         }
+
+        if (matcher != null) {
+            FileSieve sieve = new FileSieve(matcher);
+            first = first != null ? sieve.sift(first) : null;
+            second = second != null ? sieve.sift(second) : null;
+        }
+
         if (first == null) {
             return new SyncPatch(second, null);
         }
         if (second == null) {
             return new SyncPatch(first, null);
         }
-
-        FileSieve sieve = new FileSieve(matcher);
-        if (matcher != null) {
-            first = sieve.sift(first);
-            second = sieve.sift(second);
+        if (first.isFile() && !second.isFile() || !first.isFile() && second.isFile()) {
+            throw new SynchronizationException("Synchronization impossible between file and directory");
         }
+
         return recurSync(first, second);
     }
 
@@ -82,54 +90,72 @@ public class Synchronizer {
             } else {
                 return null;
             }
-        } else {
-            Set<SyncPatch> syncs = new HashSet<SyncPatch>();
+        } else { // directories
+            Set<SyncPatch> syncs = new HashSet<>();
+            boolean same = true;
 
-            Set<String> same = new HashSet<String>(first.getFiles().keySet());
-            same.retainAll(second.getFiles().keySet());
-            for (String name : same) {
-                SyncPatch si = recurSync(first.getFiles().get(name), second.getFiles().get(name));
-                if (si != null) {
-                    syncs.add(si);
+            Set<String> remained = new HashSet<>(second.getFiles().keySet());
+            for (String name : first.getFiles().keySet()) {
+                if (remained.remove(name)) { // if file exist in second directory
+                    MetaFile fc = first.getFiles().get(name);
+                    MetaFile sc = second.getFiles().get(name);
+                    // if the one is file and the other is directory
+                    if (fc.isFile() && !sc.isFile() || !fc.isFile() && sc.isFile()) {
+                        same = false;
+                        syncs.add(new SyncPatch(getMaster(fc, sc), null));
+                    } else { // both files or directories exist
+                        SyncPatch si = recurSync(fc, sc);
+                        if (si != null) {
+                            syncs.add(si);
+                        }
+                    }
+                } else { // file exist only in first directory
+                    same = false;
+                    syncs.add(diffSync(first, second, first.getFiles().get(name)));
                 }
             }
-            // if the directories' file's lists are the same
-            if ((first.getFiles().size() == second.getFiles().size()) && 
-                    (same.size() == first.getFiles().size())) {
+
+            if (!remained.isEmpty()) {
+                same = false;
+                for (String name : remained) {
+                    syncs.add(diffSync(second, first, second.getFiles().get(name)));
+                }
+            }
+
+            if (same) {
                 if (syncs.isEmpty()) {
                     return null;
                 } else {
                     return new SyncPatch(first, second.getName(), syncs);
                 }
             } else {
-                if (first.getTime() > second.getTime()) {
-                    syncs.addAll(syncDiff(first, second));
+                if (first.getTime() >= second.getTime()) {
                     return new SyncPatch(first, second.getName(), syncs);
-                } else if (first.getTime() < second.getTime()) {
-                    syncs.addAll(syncDiff(second, first));
-                    return new SyncPatch(second, first.getName(), syncs);
                 } else {
-                    throw new SynchronizationException("The same time for conflicted directories");
+                    return new SyncPatch(second, first.getName(), syncs);
                 }
             }
         }
     }
 
-    private static Set<SyncPatch> syncDiff(MetaFile master, MetaFile copy) {
-        Set<SyncPatch> syncs = new HashSet<SyncPatch>();
-
-        Set<String> added = new HashSet<String>(master.getFiles().keySet());
-        added.removeAll(copy.getFiles().keySet());
-        for (String f : added) {
-            syncs.add(new SyncPatch(master.getFiles().get(f), null));
+    private static SyncPatch diffSync(MetaFile fileOwner, MetaFile other, MetaFile file)
+            throws SynchronizationException {
+        if (fileOwner.getTime() > other.getTime()) {
+            return new SyncPatch(file, null);
+        } else if (fileOwner.getTime() < other.getTime()) {
+            return new SyncPatch(null, file.getName());
+        } else {
+            throw new SynchronizationException("The same time for conflicted directories");
         }
+    }
 
-        Set<String> removed = new HashSet<String>(copy.getFiles().keySet());
-        removed.removeAll(master.getFiles().keySet());
-        for (String f : removed) {
-            syncs.add(new SyncPatch(null, f));
+    private static MetaFile getMaster(MetaFile first, MetaFile second) throws SynchronizationException {
+        if (first.getTime() > second.getTime()) {
+            return first;
+        } else if (first.getTime() < second.getTime()) {
+            return second;
+        } else {
+            throw new SynchronizationException("The same time for conflicted files");
         }
-
-        return syncs;
     }
 }

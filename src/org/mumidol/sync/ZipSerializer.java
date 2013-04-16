@@ -17,7 +17,8 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
 /**
- *
+ * Serializer to read/write from/to ZIP file.
+ * @see Serializer
  * @author Alexander Alexeev
  */
 public class ZipSerializer implements Serializer {
@@ -127,7 +128,7 @@ public class ZipSerializer implements Serializer {
         } else if (sync.getMaster().isFile()) {
             addFile(sync.getMaster(), path, out);
         } else {
-            Set<SyncPatch> syncs = new HashSet(sync.getSyncs());
+            Set<SyncPatch> syncs = new HashSet<>(sync.getSyncs());
             for (MetaFile f : file.getFiles().values()) {
                 boolean found = false;
                 for (Iterator<SyncPatch> i = syncs.iterator(); i.hasNext(); ) {
@@ -155,11 +156,8 @@ public class ZipSerializer implements Serializer {
             ZipEntry entry = new ZipEntry(path);
             entry.setTime(file.getTime());
             out.putNextEntry(entry);
-            InputStream is = file.getInputStream();
-            try {
+            try (InputStream is = file.getInputStream()) {
                 FileUtils.copy(is, out);
-            } finally {
-                is.close();
             }
         } else {
             if (file.getFiles().isEmpty()) {
@@ -187,7 +185,7 @@ public class ZipSerializer implements Serializer {
             this.path = "";
             this.name = "";
             this.isDir = true;
-            files = new HashMap<String, ZipMetaFile>();
+            files = new HashMap<>();
         }
 
         ZipMetaFile(ZipMetaFile parent, String path) {
@@ -195,9 +193,7 @@ public class ZipSerializer implements Serializer {
             this.path = path;
             extractName(path);
             this.isDir = true;//path.endsWith("/");
-            if (isDir) {
-                files = new HashMap<String, ZipMetaFile>();
-            }
+            files = new HashMap<>();
         }
 
         ZipMetaFile(ZipMetaFile parent, ZipEntry entry) {
@@ -209,7 +205,7 @@ public class ZipSerializer implements Serializer {
             this.size = entry.getSize();
             this.time = entry.getTime();
             if (isDir) {
-                files = new HashMap<String, ZipMetaFile>();
+                files = new HashMap<>();
             }
         }
 

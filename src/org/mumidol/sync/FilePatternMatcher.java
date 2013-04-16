@@ -10,6 +10,9 @@ package org.mumidol.sync;
 import java.util.regex.Pattern;
 
 /**
+ * Pattern based matcher. Patterns are used for the inclusion and exclusion of files and are the same as
+ * Patterns in ANT. See <a href=http://ant.apache.org/manual/dirtasks.html#patterns>
+ *     http://ant.apache.org/manual/dirtasks.html#patterns</a> for more information.
  *
  * @author Alexander Alexeev
  */

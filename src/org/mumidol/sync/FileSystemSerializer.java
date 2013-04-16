@@ -15,7 +15,8 @@ import java.util.zip.CRC32;
 
 
 /**
- *
+ * Serializer to read/write from/to underlying file system.
+ * @see Serializer
  * @author Alexander Alexeev
  */
 public class FileSystemSerializer implements Serializer {
@@ -48,6 +49,11 @@ public class FileSystemSerializer implements Serializer {
                 recursDelete(path);
             }
         } else if (sync.getDependentName() == null) {
+            if (path.exists() &&
+                    (path.isFile() && !sync.getMaster().isFile() ||
+                    !path.isFile() && sync.getMaster().isFile())) { // delete file with conflicted name
+                recursDelete(path);
+            }
             if (!path.exists()) {
                 recursCopy(sync.getMaster(), path);
             }
@@ -75,12 +81,10 @@ public class FileSystemSerializer implements Serializer {
     }
 
     private static void copy(InputStream is, File file, long time) throws IOException {
-        FileOutputStream fos = new FileOutputStream(file);
-        try {
+        try (FileOutputStream fos = new FileOutputStream(file)) {
             FileUtils.copy(is, fos);
         } finally {
             is.close();
-            fos.close();
         }
         file.setLastModified(time);
     }
@@ -109,15 +113,14 @@ public class FileSystemSerializer implements Serializer {
     }
 
     private FSMetaFile readMetaFile(FSMetaFile parent, File path) throws IOException {
-        File f = path;
-        if (f.isFile()) {
-            return new FSMetaFile(parent, f.getName(), calculateCRC(new FileInputStream(f)),
-                    f.length(), f.lastModified(), path.getAbsolutePath());
+        if (path.isFile()) {
+            return new FSMetaFile(parent, path.getName(), calculateCRC(new FileInputStream(path)),
+                    path.length(), path.lastModified(), path.getAbsolutePath());
         } else {
             Map<String, FSMetaFile> files = new HashMap<String, FSMetaFile>();
-            FSMetaFile file = new FSMetaFile(parent, f.getName(), f.lastModified(),
+            FSMetaFile file = new FSMetaFile(parent, path.getName(), path.lastModified(),
                     path.getAbsolutePath(), files);
-            for (File cf : f.listFiles()) {
+            for (File cf : path.listFiles()) {
                 files.put(cf.getName(), readMetaFile(file, cf));
             }
             return file;

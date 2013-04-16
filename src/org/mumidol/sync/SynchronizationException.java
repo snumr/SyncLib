@@ -8,11 +8,12 @@
 package org.mumidol.sync;
 
 /**
+ * Signals that some conflict occurs during file's synchronization.
  *
  * @author Alexander Alexeev
  */
 class SynchronizationException extends Exception {
-    public SynchronizationException(String message) {
+    SynchronizationException(String message) {
         super(message);
     }
 }

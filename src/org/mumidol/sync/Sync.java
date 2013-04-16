@@ -30,19 +30,22 @@ public class Sync {
     private static List<String> includes;
     private static List<String> excludes;
 
+    private Sync() {
+    }
+
     public static void main(String[] args) throws IOException, SynchronizationException {
         parseArgs(args);
 
         FileMatcher matcher = null;
         if (includes != null) {
-            List<FileMatcher> matchers = new ArrayList<FileMatcher>(includes.size());
+            List<FileMatcher> matchers = new ArrayList<>(includes.size());
             for (String include : includes) {
                 matchers.add(new FilePatternMatcher(include, true));
             }
             matcher = new ComposedFileMatcher(matchers);
         }
         if (excludes != null) {
-            List<FileMatcher> matchers = new ArrayList<FileMatcher>(excludes.size());
+            List<FileMatcher> matchers = new ArrayList<>(excludes.size());
             for (String exclude : excludes) {
                 matchers.add(new FilePatternMatcher(exclude, false));
             }
@@ -53,10 +56,13 @@ public class Sync {
                 matcher = new ComposedFileMatcher(matchers);
             }
         }
+
         SyncPatch sync = Synchronizer.sync(src.read(), dst.read(), matcher);
+
         if (syncSource) {
             src.patch(sync);
         }
+
         dst.patch(sync);
     }
 
@@ -65,20 +71,25 @@ public class Sync {
             throw new IllegalArgumentException("Source and destination must be provided");
         }
         for (int i = 0; i < args.length - 2; ) {
-            if ("-c".equals(args[i])) {
-                syncSource = false;
-                i += 1;
-            } else if ("-s".equals(args[i])) {
-                syncSource = true;
-                i += 1;
-            } else if ("-i".equals(args[i])) {
-                includes = new ArrayList<String>();
-                i = fillList(args, i + 1, includes);
-            } else if ("-e".equals(args[i])) {
-                excludes = new ArrayList<String>();
-                i = fillList(args, i + 1, excludes);
-            } else {
-                throw new IllegalArgumentException("Unknown parameter: " + args[i]);
+            switch (args[i]) {
+                case "-c":
+                    syncSource = false;
+                    i += 1;
+                    break;
+                case "-s":
+                    syncSource = true;
+                    i += 1;
+                    break;
+                case "-i":
+                    includes = new ArrayList<>();
+                    i = fillList(args, i + 1, includes);
+                    break;
+                case "-e":
+                    excludes = new ArrayList<>();
+                    i = fillList(args, i + 1, excludes);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown parameter: " + args[i]);
             }
         }
         src = createSerializer(args[args.length - 2]);
