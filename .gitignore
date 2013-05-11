@@ -107,6 +107,7 @@ stylecop.*
 ~$*
 *.dbmdl
 Generated_Code #added for RIA/Silverlight projects
+.idea/workspace.xml
 
 # Backup & report files from converting an old project file to a newer
 # Visual Studio version. Backup files are not needed, because we have git ;-)
@@ -145,6 +146,7 @@ var
 sdist
 develop-eggs
 .installed.cfg
+out
 
 # Installer logs
 pip-log.txt
