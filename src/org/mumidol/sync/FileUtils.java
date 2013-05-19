@@ -7,6 +7,7 @@
 
 package org.mumidol.sync;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,4 +33,21 @@ public class FileUtils {
             i = is.read(buf);
         }
     }
+
+    public static boolean isEqual(InputStream is1, InputStream is2) throws IOException {
+        BufferedInputStream bis1 = new BufferedInputStream(is1);
+        BufferedInputStream bis2 = new BufferedInputStream(is2);
+
+        int b1, b2;
+        do {
+            b1 = bis1.read();
+            b2 = bis2.read();
+            if (b1 != b2) {
+                return false;
+            }
+        } while ((b1 != -1) && (b2 != -1));
+
+        return (b1 == -1) && (b2 == -1);
+    }
+
 }

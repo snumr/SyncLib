@@ -29,6 +29,7 @@ public class Sync {
     private static Serializer dst;
     private static List<String> includes;
     private static List<String> excludes;
+    private static String hash;
 
     private Sync() {
     }
@@ -57,7 +58,7 @@ public class Sync {
             }
         }
 
-        SyncPatch sync = Synchronizer.sync(src.read(), dst.read(), matcher);
+        SyncPatch sync = Synchronizer.sync(src.read(), dst.read(), matcher, hash);
 
         if (syncSource) {
             src.patch(sync);
@@ -84,9 +85,13 @@ public class Sync {
                     includes = new ArrayList<>();
                     i = fillList(args, i + 1, includes);
                     break;
-                case "-e":
+                case "-x":
                     excludes = new ArrayList<>();
                     i = fillList(args, i + 1, excludes);
+                    break;
+                case "-h":
+                    hash = args[i + 1];
+                    i += 2;
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown parameter: " + args[i]);
@@ -97,7 +102,7 @@ public class Sync {
     }
 
     private static Serializer createSerializer(String path) {
-        if (path.endsWith(".zip") && new File(path).isFile()) {
+        if (path.endsWith(".zip") && !new File(path).exists() || new File(path).isFile()) {
             return new ZipSerializer(path);
         } else {
             return new FileSystemSerializer(path);

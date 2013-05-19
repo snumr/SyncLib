@@ -28,6 +28,7 @@ public class Patcher {
     private static File patch;
     private static List<String> includes;
     private static List<String> excludes;
+    private static String hash;
 
     private Patcher() {}
 
@@ -85,9 +86,13 @@ public class Patcher {
                     includes = new ArrayList<>();
                     i = fillList(args, i + 1, includes);
                     break;
-                case "-e":
+                case "-x":
                     excludes = new ArrayList<>();
                     i = fillList(args, i + 1, excludes);
+                    break;
+                case "-h":
+                    hash = args[i + 1];
+                    i += 2;
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown parameter: " + args[i]);
@@ -125,7 +130,7 @@ public class Patcher {
 
     private static void createPatch(Serializer src, Serializer backup, File patch, FileMatcher matcher)
             throws IOException, SynchronizationException {
-        SyncPatch sync = Synchronizer.sync(src.read(), backup.read(), matcher);
+        SyncPatch sync = Synchronizer.sync(src.read(), backup.read(), matcher, hash);
         if (sync != null) {
             SyncPatch.save(sync, new FileOutputStream(patch));
         } else {
@@ -137,6 +142,6 @@ public class Patcher {
             throws IOException, SynchronizationException {
         backup.patch(SyncPatch.load(new FileInputStream(patch)));
 
-        src.patch(Synchronizer.sync(src.read(), backup.read(), matcher));
+        src.patch(Synchronizer.sync(src.read(), backup.read(), matcher, hash));
     }
 }

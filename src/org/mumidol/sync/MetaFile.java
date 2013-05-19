@@ -46,10 +46,11 @@ public interface MetaFile {
     Map<String, ? extends MetaFile> getFiles();
 
     /**
-     * Return CRC-32 checksum of this file content.
-     * @return checksum or 0 if file is a directory.
+     * Returns hash sum of this file content.
+     * @param hashFunc type of hash function to be used
+     * @return hash sum or <tt>null</tt> if file is a directory or hash function isn't supported
      */
-    long getCrc();
+    byte[] getHash(String hashFunc);
 
     /**
      * Returns size of this file.

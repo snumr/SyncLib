@@ -83,8 +83,8 @@ class FileSieve {
         }
 
         @Override
-        public long getCrc() {
-            return original.getCrc();
+        public byte[] getHash(String hashFunc) {
+            return original.getHash(hashFunc);
         }
 
         @Override

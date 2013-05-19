@@ -7,7 +7,9 @@
 
 package org.mumidol.sync;
 
-import java.text.CollationElementIterator;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -33,8 +35,8 @@ public class Synchronizer {
      * @throws SynchronizationException 
      * @see SyncPatch
      */
-    public static SyncPatch sync(MetaFile first, MetaFile second, FileMatcher matcher)
-            throws NullPointerException, SynchronizationException {
+    public static SyncPatch sync(MetaFile first, MetaFile second, FileMatcher matcher, String hashFunc)
+            throws NullPointerException, SynchronizationException, IOException {
         if ((first == null) && (second == null)) {
             throw new NullPointerException();
         }
@@ -55,7 +57,7 @@ public class Synchronizer {
             throw new SynchronizationException("Synchronization impossible between file and directory");
         }
 
-        return recurSync(first, second);
+        return recurSync(first, second, hashFunc);
     }
 
     /**
@@ -70,25 +72,49 @@ public class Synchronizer {
      * @see SyncPatch
      */
     public static SyncPatch sync(MetaFile first, MetaFile second)
-            throws NullPointerException, SynchronizationException {
-        return sync(first, second, null);
+            throws NullPointerException, SynchronizationException, IOException {
+        return sync(first, second, null, null);
     }
 
 //  private stuff
 //  =============================================================================================
-    private static SyncPatch recurSync(MetaFile first, MetaFile second)
-            throws SynchronizationException {
+    private static SyncPatch recurSync(MetaFile first, MetaFile second, String hashFunc)
+            throws SynchronizationException, IOException {
         if (first.isFile()) {
-            if ((first.getSize() != second.getSize()) || (first.getCrc() != second.getCrc())) {
-                if (first.getTime() > second.getTime()) {
-                    return new SyncPatch(first, second.getName());
-                } else if (first.getTime() < second.getTime()) {
-                    return new SyncPatch(second, first.getName());
+            if (first.getSize() == second.getSize()) {
+                InputStream fis = first.getInputStream();
+                InputStream sis = second.getInputStream();
+                if (hashFunc == null) {
+                    if (FileUtils.isEqual(fis, sis)) {
+                        return null;
+                    }
                 } else {
-                    throw new SynchronizationException("The same time for conflicted files");
+                    byte[] hash1 = first.getHash(hashFunc);
+                    byte[] hash2 = second.getHash(hashFunc);
+                    if ((hash1 == null) && (hash2 == null) ||
+                        ((hash1 == null) || (hash2 == null)) &&
+                                (HashManager.getHashManager().getCalculator(hashFunc) == null)) {
+                        if (FileUtils.isEqual(fis, sis)) {
+                            return null;
+                        }
+                    }
+                    if (hash1 == null) {
+                        hash1 = HashManager.getHashManager().getCalculator(hashFunc).calculate(fis);
+                    }
+                    if (hash2 == null) {
+                        hash2 = HashManager.getHashManager().getCalculator(hashFunc).calculate(sis);
+                    }
+                    if (Arrays.equals(hash1, hash2)) {
+                        return null;
+                    }
                 }
+            }
+            if (first.getTime() > second.getTime()) {
+                return new SyncPatch(first, second.getName());
+            } else if (first.getTime() < second.getTime()) {
+                return new SyncPatch(second, first.getName());
             } else {
-                return null;
+                throw new SynchronizationException("The same time for conflicted files");
             }
         } else { // directories
             Set<SyncPatch> syncs = new HashSet<>();
@@ -104,7 +130,7 @@ public class Synchronizer {
                         same = false;
                         syncs.add(new SyncPatch(getMaster(fc, sc), null));
                     } else { // both files or directories exist
-                        SyncPatch si = recurSync(fc, sc);
+                        SyncPatch si = recurSync(fc, sc, hashFunc);
                         if (si != null) {
                             syncs.add(si);
                         }

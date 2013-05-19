@@ -193,7 +193,7 @@ public class SyncPatch {
         }
 
         @Override
-        public long getCrc() {
+        public byte[] getHash(String hashFunc) {
             throw new UnsupportedOperationException();
         }
 

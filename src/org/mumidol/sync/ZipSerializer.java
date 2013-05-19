@@ -177,7 +177,7 @@ public class ZipSerializer implements Serializer {
         private String name;
         private boolean isDir;
         private Map<String, ZipMetaFile> files;
-        private long crc;
+        private byte[] crc = new byte[4];
         private long size;
         private long time;
 
@@ -201,7 +201,11 @@ public class ZipSerializer implements Serializer {
             this.path = entry.getName();
             extractName(path);
             this.isDir = entry.isDirectory();
-            this.crc = entry.getCrc();
+            long t = entry.getCrc();
+            for (int i = 3; i >= 0; i--) {
+                crc[i] = (byte) t;
+                t >>= 8;
+            }
             this.size = entry.getSize();
             this.time = entry.getTime();
             if (isDir) {
@@ -236,8 +240,11 @@ public class ZipSerializer implements Serializer {
         }
 
         @Override
-        public long getCrc() {
-            return crc;
+        public byte[] getHash(String hashFunc) {
+            if ("CRC-32".equals(HashManager.getHashManager().getCanonicalName(hashFunc))) {
+                return crc;
+            }
+            return null;
         }
 
         @Override

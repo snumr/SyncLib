@@ -28,6 +28,8 @@ public class FilePatternMatcher extends PathBasedFileMatcher {
             mask = mask + "**";
         }
         String regexp = mask.
+                    replace(".", "\\.").
+                    replace("?", ".").
                     replace("/**/", "(/|/.+/)").
                     replace("**", "++"). // temporary change to + to avoid mixing with single *
                     replace("*", "[^/]*").
@@ -41,7 +43,10 @@ public class FilePatternMatcher extends PathBasedFileMatcher {
         if (pattern.matcher(getPath(file)).matches()) {
             return include;
         }
-        if (!file.isFile()) {
+        if (!include) {   // always accept file if doesn't match exclude pattern
+            return true;
+        }
+        if (!file.isFile()) { // if one of sub-files matches then accept file
             for (MetaFile f : file.getFiles().values()) {
                 if (accept(f)) {
                     return true;

@@ -114,8 +114,7 @@ public class FileSystemSerializer implements Serializer {
 
     private FSMetaFile readMetaFile(FSMetaFile parent, File path) throws IOException {
         if (path.isFile()) {
-            return new FSMetaFile(parent, path.getName(), calculateCRC(new FileInputStream(path)),
-                    path.length(), path.lastModified(), path.getAbsolutePath());
+            return new FSMetaFile(parent, path.getName(), path.length(), path.lastModified(), path.getAbsolutePath());
         } else {
             Map<String, FSMetaFile> files = new HashMap<String, FSMetaFile>();
             FSMetaFile file = new FSMetaFile(parent, path.getName(), path.lastModified(),
@@ -127,36 +126,19 @@ public class FileSystemSerializer implements Serializer {
         }
     }
 
-    private long calculateCRC(FileInputStream fis) throws IOException {
-        try {
-            CRC32 crc = new CRC32();
-            byte[] buf = new byte[4096];
-            int i = fis.read(buf);
-            while (i != -1) {
-                crc.update(buf, 0, i);
-                i = fis.read(buf);
-            }
-            return crc.getValue();
-        } finally {
-            fis.close();
-        }
-    }
-
     class FSMetaFile implements MetaFile {
         private FSMetaFile parent;
         private String name;
         private boolean isFile;
         private Map<String, FSMetaFile> files;
-        private long crc;
         private long size;
         private long time;
         private String path;
 
-        FSMetaFile(FSMetaFile parent, String name, long crc, long size, long time, String path) {
+        FSMetaFile(FSMetaFile parent, String name, long size, long time, String path) {
             this.parent = parent;
             this.name = name;
             this.isFile = true;
-            this.crc = crc;
             this.size = size;
             this.time = time;
             this.path = path;
@@ -193,8 +175,8 @@ public class FileSystemSerializer implements Serializer {
         }
 
         @Override
-        public long getCrc() {
-            return crc;
+        public byte[] getHash(String hashFunc) {
+            return null;
         }
 
         @Override
